@@ -11,3 +11,110 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role { 
+  USER 
+  MERCHANT 
+  ADMIN 
+}
+
+enum WalletType{
+  USER
+  MERCHANT
+  SYSTEM
+}
+
+enum TransactionType{
+ TOPUP
+ TRANSFER 
+ MERCHANT_PAYMENT 
+ REFUND 
+}
+
+enum TransactionStatus{
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum EntryDirection{ 
+  DEBIT 
+  CREDIT 
+}
+
+model User{
+  id             String  @id @default(uuid())
+  name           String
+  phone          String @unique
+  passwordHas    String 
+  upiId          String @unique
+  pinHash        String?
+  role           Role   @default(USER)
+  wallet         Wallet?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Wallet{
+  id            String @id @default(uuid())
+  userId        String @unique
+  balance       BigInt @default(0)
+  currency      String @default("INR")
+  type          WalletType @default(USER)
+  entries       LedgerEntry[]
+  sent          Transaction[]   @relation("FromWallet")
+  recieved      Transaction[]   @relation("ToWallet")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  //relation
+  user          User? @relation(fields: [userId], references: [id])
+}
+
+model Transaction{
+  id            String @id @default(uuid())
+  reference     String @unique
+  type          TransactionType
+  status        TransactionStatus @default(PENDING)
+  amount        BigInt
+  fromWalletId  String?
+  toWalletId    String?
+
+  //relation
+  fromWallet    Wallet?  @relation("FromWallet", fields: [fromWalletId], references: [id])
+  toWallet      Wallet?  @relation("ToWallet", fields: [toWalletId], references: [id])
+
+  note                  String? 
+  failureReason         String?
+
+  originalTransactionId String?
+  originalTransaction   Transaction?      @relation("Refunds", fields: [originalTransactionId], references: [id])
+
+  refunds               Transaction[]     @relation("Refunds")
+  entries               LedgerEntry[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([fromWalletId, createdAt])
+  @@index([toWalletId, createdAt])
+  @@index([status])
+}
+
+model LedgerEntry{
+  id              String @id @default(uuid())
+
+  transactionId   String
+  transaction     Transaction  @relation(fields: [transactionId], references: [id])
+
+  walletId         String
+  wallet           Wallet      @relation(fields: [walletId], references: [id])
+
+  direction       EntryDirection
+  amount          BigInt
+  balanceAfter    BigInt
+  createdAt       DateTime       @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([transactionId])
+}
