@@ -54,6 +54,8 @@ model User{
   wallet         Wallet?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  refreshTokens   RefreshToken[]
 }
 
 model Wallet{
@@ -117,4 +119,16 @@ model LedgerEntry{
 
   @@index([walletId, createdAt])
   @@index([transactionId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }

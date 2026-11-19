@@ -7,9 +7,11 @@ const app = express();
 
 app.use(express.json());
 
+
 app.get("/", (req, res)=>{
     res.json({message: "welcome to the home page"})
 })
+
 
 app.use(notFound);
 app.use(errorHandler)
