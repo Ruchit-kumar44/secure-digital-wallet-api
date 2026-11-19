@@ -1,6 +1,6 @@
 import  express  from "express";
 import { env } from "./config/env.js";
-import { errorHandler, notFound } from "./middelware/errorHandler.js";
+import { errorHandler, notFound } from "./middelware/errorHandler.middelware.js";
 
 const app = express();
 
