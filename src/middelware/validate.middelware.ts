@@ -8,7 +8,7 @@ export function Valdita(schema: ZodType){
     _res: Response,
     next: NextFunction
    )=>{
-     const result = schema.safeParse(req.body);
+     const result = schema.safeParse({body: req.body, params: req.params, query: req.query});
      if(!result.success){
         throw new AppError(
             400,
