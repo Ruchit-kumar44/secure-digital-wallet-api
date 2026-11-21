@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodType } from "zod";
 import { AppError } from "../utils/appError.js";
 
-export function Valdita(schema: ZodType){
+export function Validate(schema: ZodType){
    return (
     req: Request,
     _res: Response,

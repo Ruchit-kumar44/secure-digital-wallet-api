@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../utils/appError.js";
 
 export function notFound(req: Request, res: Response){
-    res.status(404).json({ error: "Route not found" });
+    res.status(404).json({ error: "Route  not found" });
 }
 
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction){

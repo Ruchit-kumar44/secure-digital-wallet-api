@@ -47,7 +47,7 @@ model User{
   id             String  @id @default(uuid())
   name           String
   phone          String @unique
-  passwordHas    String 
+  passwordHash    String 
   upiId          String @unique
   pinHash        String?
   role           Role   @default(USER)
