@@ -3,6 +3,7 @@ import { env } from "../config/env.js";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "../utils/password.js";
 import { generateRefreshToken, hashToken, signAccessToken } from "../utils/token.js";
 import { AppError } from "../utils/appError.js";
+import type { loginInput, refreshTokenInput, registerInput } from "../schemas/auth.schema.js";
 
 async function issueTokens(user: { id: string; role: string }) {
   const refreshToken = generateRefreshToken();
@@ -17,7 +18,7 @@ async function issueTokens(user: { id: string; role: string }) {
 }
 
 export const authService = {
-  async register(input: { name: string; phone: string; password: string }) {
+  async register(input: registerInput) {
     const passwordHash = await hashPassword(input.password);
     try {
       const user = await prisma.user.create({
@@ -36,15 +37,15 @@ export const authService = {
     }
   },
 
-  async login(input: { phone: string; password: string }) {
+  async login(input: loginInput) {
     const user = await prisma.user.findUnique({ where: { phone: input.phone } });
     const valid = await verifyPassword(input.password, user ? user.passwordHash : DUMMY_HASH);
     if (!user || !valid) throw new AppError(401, "Invalid phone or password");
     return issueTokens(user);
   },
 
-  async refresh(refreshToken: string) {
-    const stored = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(refreshToken) } });
+  async refresh(input: refreshTokenInput) {
+    const stored = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(input.refreshToken) } });
     if (!stored) throw new AppError(401, "Invalid refresh token");
 
     if (stored.revokedAt) {
@@ -62,9 +63,9 @@ export const authService = {
     return issueTokens(user);
   },
 
-  async logout(refreshToken: string) {
+  async logout(input: refreshTokenInput) {
     await prisma.refreshToken.updateMany({
-      where: { tokenHash: hashToken(refreshToken), revokedAt: null },
+      where: { tokenHash: hashToken(input.refreshToken), revokedAt: null },
       data: { revokedAt: new Date() },
     });
   },

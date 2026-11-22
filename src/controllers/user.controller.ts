@@ -7,5 +7,5 @@ export async function getMe(req: Request, res: Response) {
 
 export async function setPin(req: Request, res: Response) {
   await userServices.setPin(req.user!.id, req.body.pin);
-  res.status(204).send();
+  res.status(204).send("pin registered successfully");
 }

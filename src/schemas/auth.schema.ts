@@ -20,3 +20,10 @@ export const refreshSchema = z.object({body:z.object({ refreshToken: z.string().
 
 //schema for 6 digit PIN
 export const setPinSchema = z.object({body: z.object({ pin: z.string().regex(/^\d{6}$/, "PIN must be 6 digits") })});
+
+
+//compile time checking
+export type registerInput = z.infer<typeof registerSchema>["body"];
+export type loginInput = z.infer<typeof loginSchema>["body"]
+export type  refreshTokenInput= z.infer<typeof refreshSchema>["body"]
+export type setPinInput = z.infer<typeof setPinSchema>["body"]

@@ -1,11 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { ZodType } from "zod";
+import z from "zod";
 import { AppError } from "../utils/appError.js";
 
-export function Validate(schema: ZodType){
+export function Validate(schema: z.ZodType<{body?: unknown, params?: unknown, query? : unknown }>){
    return (
     req: Request,
-    _res: Response,
+    res: Response,
     next: NextFunction
    )=>{
      const result = schema.safeParse({body: req.body, params: req.params, query: req.query});
@@ -16,7 +16,14 @@ export function Validate(schema: ZodType){
             result.error.issues.map((i)=>({ field: i.path.join("."), message: i.message }))
         );
      }
-     req.body = result.data;
-     next()
-   }
+
+    const {body, params, query} = result.data;
+    const parsedData = result.data;
+    if (body !== undefined) {
+      req.body = body;
+    };
+    res.locals.validated = { params, query };
+    next();
+  };
+   
 }
