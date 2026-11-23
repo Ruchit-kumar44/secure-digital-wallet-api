@@ -1,0 +1,3 @@
+export const MIN_TOPUP_PAISE = 100;
+export const MAX_TOPUP_PAISE = 5_000_000;
+export const MAX_WALLET_BALANCE_PAISE = 20_000_000;

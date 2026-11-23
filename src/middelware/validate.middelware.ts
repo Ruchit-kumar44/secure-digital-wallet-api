@@ -18,7 +18,6 @@ export function Validate(schema: z.ZodType<{body?: unknown, params?: unknown, qu
      }
 
     const {body, params, query} = result.data;
-    const parsedData = result.data;
     if (body !== undefined) {
       req.body = body;
     };
