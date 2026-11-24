@@ -11,7 +11,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
     body: z.object({
         phone: z.string().regex(/^[6-9]\d{9}$/),
-    password: z.string().min(1).max(72),
+        password: z.string().min(1).max(72),
     })
 });
 
