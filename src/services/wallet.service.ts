@@ -1,5 +1,5 @@
 import { prisma } from "../config/prisma.js";
-import type { topUpInput } from "../schemas/wallet-schema.js";
+import type { topUpInput } from "../schemas/wallet.schema.js";
 import { paiseToRupees, rupeesToPaise } from "../utils/amountConversion.js";
 import {MAX_WALLET_BALANCE } from "../utils/amountLimit.js";
 import { AppError } from "../utils/appError.js";
