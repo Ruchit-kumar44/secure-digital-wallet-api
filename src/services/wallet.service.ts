@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import type { topUpInput } from "../schemas/wallet-schema.js";
-import {MAX_WALLET_BALANCE_PAISE } from "../utils/amountLimit.js";
+import { paiseToRupees, rupeesToPaise } from "../utils/amountConversion.js";
+import {MAX_WALLET_BALANCE } from "../utils/amountLimit.js";
 import { AppError } from "../utils/appError.js";
 import { newReference } from "../utils/referenceId.js";
 
@@ -14,14 +15,14 @@ export const walletService = {
     }
     return {
       id: wallet.id,
-      balance: wallet.balance.toString(),
+      balance: paiseToRupees(wallet.balance),
       currency: wallet.currency,
     };
   },
 
   async topUp(userId: string, input: topUpInput) {
     //convert amount to bigInt
-    const amount = BigInt(input.amount);
+    const amount = rupeesToPaise(input.amount);
 
     const wallet = await prisma.wallet.findUnique({
       where: { userId: userId },
@@ -43,7 +44,7 @@ export const walletService = {
           amount,
           fromWalletId: system.id,
           toWalletId: wallet.id,
-          //    note: input.note,
+          note: input.note ?? null, //Converts `undefined` to `null` so Prisma + exactOptionalPropertyTypes dont conflict
         },
       });
 
@@ -59,7 +60,7 @@ export const walletService = {
         data: {balance: {increment: amount}}
       });
 
-      if(userWalletAfter.balance > BigInt(MAX_WALLET_BALANCE_PAISE)){
+      if(userWalletAfter.balance > BigInt(MAX_WALLET_BALANCE)){
         throw new AppError(422, "Wallet balance limit exceeded");
       }
 
@@ -75,8 +76,8 @@ export const walletService = {
         reference: txn.reference,
         type: txn.type,
         status: txn.status,
-        amount: amount.toString(),
-        balance: userWalletAfter.balance.toString(),
+        amount: paiseToRupees(amount),
+        balance: paiseToRupees(userWalletAfter.balance),
         createdAt: txn.createdAt,
       };
     });
