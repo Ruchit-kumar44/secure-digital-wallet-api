@@ -2,6 +2,7 @@ import { use } from "react";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/appError.js";
 import { hashPassword } from "../utils/password.js";
+import { paiseToRupees } from "../utils/amountConversion.js";
 
 export const userServices = {
   async getProfile(userId: string) {
@@ -21,7 +22,7 @@ export const userServices = {
       hasPin: !!user.pinHash,
       wallet: {
         id: user.wallet.id,
-        balance: user.wallet.balance.toString(),
+        balance: paiseToRupees(user.wallet.balance),
         currency: user.wallet.currency,
       },
     };

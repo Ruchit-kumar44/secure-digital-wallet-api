@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node ./dist/server.js",
     "build": "tsc -b",
-    "start": "tsc -b && node ./dist/server.js"
+    "start": "tsc -b && node ./dist/server.js",
+    "test:db-seed": "tsx src/scripts/seed.ts",
+    "test:concurrency": "tsx src/scripts/concurrency.ts"
   },
   "keywords": [],
   "author": "",
