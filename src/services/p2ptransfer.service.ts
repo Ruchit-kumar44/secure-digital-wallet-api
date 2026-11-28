@@ -5,7 +5,7 @@ import { MAX_WALLET_BALANCE } from "../utils/amountLimit.js";
 import { AppError } from "../utils/appError.js";
 import { verifyPassword } from "../utils/password.js";
 import { newReference } from "../utils/referenceId.js";
-import  { withRetry } from "../utils/retry.js";
+import { withRetry } from "../utils/retry.js";
 
 type MoveMoneyParams = {
   senderWalletId: string;
@@ -14,18 +14,16 @@ type MoveMoneyParams = {
   note?: string | null;
 };
 
+//we separate this to test concurrency stress using scripts
+async function moveMoney(p: MoveMoneyParams) {
+  if (p.senderWalletId === p.receiverWalletId) {
+    throw new AppError(400, "sender and receiver wallet must be different");
+  }
 
-
-  
-  async function moveMoney(p: MoveMoneyParams){
-    if(p.senderWalletId === p.receiverWalletId){
-      throw new AppError(400, "sender and receiver wallet must be different")
-    }
-
-    // 3.transatios helps in either full or rollback query
-    return prisma.$transaction(async (tx) => {
-
-      //prevent deadlock 
+  // 3.transatios helps in either full or rollback query
+  return prisma.$transaction(
+    async (tx) => {
+      //prevent deadlock
       const [first, second] = [p.senderWalletId, p.receiverWalletId].sort();
       await tx.$queryRaw`SELECT id FROM "Wallet" WHERE id = ${first} FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM "Wallet" WHERE id = ${second} FOR UPDATE`;
@@ -92,49 +90,49 @@ type MoveMoneyParams = {
         balance: paiseToRupees(senderAfter.balance),
         createdAt: txn.createdAt,
       };
-    }, { maxWait: 10_000, timeout: 15_000 }, );
-    //{ maxWait, timeout }: Prisma interactive transactions give up after 2 seconds waiting for a free connection and 5 seconds of running time by default. Under 100 parallel transfers, some wait in line, so we allow 10 and 15 seconds. These are test-friendly values, not performance targets.
-  };
+    },
+    { maxWait: 10_000, timeout: 15_000 },
+  );
+  //{ maxWait, timeout }: Prisma interactive transactions give up after 2 seconds waiting for a free connection and 5 seconds of running time by default. Under 100 parallel transfers, some wait in line, so we allow 10 and 15 seconds. These are test-friendly values, not performance targets.
+}
 
+async function transfer(senderId: string, input: TransferInput) {
+  //rupees to paise conversion
+  const amount = rupeesToPaise(input.amount);
 
-  async function transfer(senderId: string, input: TransferInput) {
-    //rupees to paise conversion
-    const amount = rupeesToPaise(input.amount);
+  // 1. Sender checks, done BEFORE any transaction
+  const sender = await prisma.user.findUnique({
+    where: { id: senderId },
+    include: { wallet: true },
+  });
+  if (!sender || !sender.wallet) throw new AppError(404, "Sender not found");
+  if (!sender.pinHash) throw new AppError(403, "Set a transaction PIN first");
+  //here verfiyPassword is utilised to verify pinHash
+  if (!(await verifyPassword(input.pin, sender.pinHash)))
+    throw new AppError(403, "Incorrect PIN");
 
-    // 1. Sender checks, done BEFORE any transaction
-    const sender = await prisma.user.findUnique({
-      where: { id: senderId },
-      include: { wallet: true },
-    });
-    if (!sender || !sender.wallet) throw new AppError(404, "Sender not found");
-    if (!sender.pinHash) throw new AppError(403, "Set a transaction PIN first");
-    //here verfiyPassword is utilised to verify pinHash
-    if (!(await verifyPassword(input.pin, sender.pinHash)))
-      throw new AppError(403, "Incorrect PIN");
+  //find reciever by upi id or phone number
+  const receiver = await prisma.user.findUnique({
+    where: input.to.includes("@")
+      ? { upiId: input.to.toLowerCase() }
+      : { phone: input.to },
+    include: { wallet: true },
+  });
+  if (!receiver || !receiver.wallet)
+    throw new AppError(404, "Recipient not found");
+  if (receiver.id === sender.id)
+    throw new AppError(400, "You cannot send money to yourself");
 
-    //find reciever by upi id or phone number
-    const receiver = await prisma.user.findUnique({
-      where: input.to.includes("@")
-        ? { upiId: input.to.toLowerCase() }
-        : { phone: input.to },
-      include: { wallet: true },
-    });
-    if (!receiver || !receiver.wallet)
-      throw new AppError(404, "Recipient not found");
-    if (receiver.id === sender.id)
-      throw new AppError(400, "You cannot send money to yourself");
-
-    
-    const result = await withRetry(()=>
-     moveMoney({
+  const result = await withRetry(() =>
+    moveMoney({
       senderWalletId: sender.wallet!.id,
       receiverWalletId: receiver.wallet!.id,
       amount: amount,
-      note: input.note ?? null
+      note: input.note ?? null,
     }),
-    )
+  );
 
-    return { ...result, to: { name: receiver.name, upiId: receiver.upiId } };
-  }
+  return { ...result, to: { name: receiver.name, upiId: receiver.upiId } };
+}
 
-  export const p2ptransferService = { transfer, moveMoney };
+export const p2ptransferService = { transfer, moveMoney };

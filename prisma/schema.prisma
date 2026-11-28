@@ -132,3 +132,17 @@ model RefreshToken {
 
   @@index([userId])
 }
+
+model IdempotencyKey  {
+  id             String  @id  @default(uuid())
+  userId         String  
+  key            String
+  endpoint       String
+  requestHash    String
+  responseBody   Json?
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+}
